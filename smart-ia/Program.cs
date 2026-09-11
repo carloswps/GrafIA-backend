@@ -1,10 +1,16 @@
 using Microsoft.SemanticKernel;
+using smart_ia.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Services
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddScoped<DataProcessService>();
+builder.Services.AddScoped<AiInsightService>();
+builder.Services.AddScoped<ChartAiService>();
 
 var llmConfig = builder.Configuration.GetSection("LLM");
 var apiKey = llmConfig["ApiKey"];
