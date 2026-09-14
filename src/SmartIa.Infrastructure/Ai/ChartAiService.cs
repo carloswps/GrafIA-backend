@@ -1,11 +1,11 @@
 using System.Text.Json;
 using Microsoft.SemanticKernel;
-using smart_ia.Dtos;
-using smart_ia.Services.Interfaces;
+using SmartIa.Application.Dtos;
+using SmartIa.Application.Interfaces;
 
-namespace smart_ia.Services;
+namespace SmartIa.Infrastructure.Ai;
 
-public class ChartAiService
+public class ChartAiService : IChartAiService
 {
     private readonly Kernel _kernel;
     private readonly IDataSanitizerService _dataSanitizerService;

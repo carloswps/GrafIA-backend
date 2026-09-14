@@ -1,0 +1,115 @@
+## smart-ia-mvp — .gitignore unificado
+## Baseado no template oficial do .NET (dotnet new gitignore)
+## Cobertura: todos os projetos em src/ e tests/
+
+## ---------- Secrets ----------
+appsettings.json
+appsettings.*.Local.json
+*.env
+.env
+.env.*
+!.env.example
+api-srv.csproj.lscache
+
+## ---------- Build results ----------
+[Bb]in/
+[Oo]bj/
+[Bb]uild/
+[Bb]uild[Ll]og.*
+[Ll]og/
+[Ll]ogs/
+[Pp]ublish/
+publishprofiles/
+
+## Visual Studio cache/options directory
+.vs/
+
+## Rider
+.idea/
+
+## ---------- User-specific files ----------
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+## Mono auto generated files
+mono_crash.*
+
+## ---------- NuGet ----------
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+## nDroid — some MSBuild binaries
+## (n/a, kept minimal)
+
+## ---------- Test / coverage ----------
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+[Cc]overage/
+[Cc]overage.xml
+*.coverage
+*.coveragexml
+TestResult.xml
+nunit-*.xml
+*.trx
+
+## Code coverage tools
+*.pdb.md5
+
+## ---------- Static web assets / Razor ----------
+_project.Razor.Components.Import/
+_app.scvswa.dswa.cache.json
+*.dswa.cache.json
+rjsmcshtml.dswa.cache.json
+
+## ---------- ASP.NET generated ----------
+**/Properties/launchSettings.json.tmp
+
+## ---------- Others ----------
+## Publish profiles are shared, but secrets in publish profiles
+*.pubxml.user
+
+## JetBrains Rider per-user files
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/shelf/
+
+## VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+## Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+## macOS
+.DS_Store
+._*
+
+## Linux
+*~
+.nfs*
+
+## Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+.~*
+*.pid

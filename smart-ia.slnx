@@ -1,3 +1,9 @@
 <Solution>
-  <Project Path="smart-ia/smart-ia.csproj" />
+  <Folder Name="/src/">
+    <Project Path="src/SmartIa.Api/SmartIa.Api.csproj" />
+    <Project Path="src/SmartIa.Application/SmartIa.Application.csproj" />
+    <Project Path="src/SmartIa.Infrastructure/SmartIa.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Project Path="tests/SmartIa.Tests/SmartIa.Tests.csproj" />
 </Solution>

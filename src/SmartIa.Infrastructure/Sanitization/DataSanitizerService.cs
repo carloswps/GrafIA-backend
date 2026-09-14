@@ -1,9 +1,9 @@
 using System.Text.RegularExpressions;
-using smart_ia.Services.Interfaces;
+using SmartIa.Application.Interfaces;
 
-namespace smart_ia.Services;
+namespace SmartIa.Infrastructure.Sanitization;
 
-public class DataSanitizerService : IDataSanitizerService
+public partial class DataSanitizerService : IDataSanitizerService
 {
     // whitelist: only allow these columns
     private static readonly HashSet<string> AllowedColumns = new(StringComparer.OrdinalIgnoreCase)
@@ -21,10 +21,9 @@ public class DataSanitizerService : IDataSanitizerService
         "Qtd Devolvida", "Valor Devolvido"
     };
 
-    private static readonly Regex CpfCnpjRegex = new(@"\d{3}\.?\d{3}\.?\d{3}-?\d{2}|\d{2}\.?\d{3}\.?\d{3}/\d{4}-?\d{2}",
-        RegexOptions.Compiled);
+    private static readonly Regex CpfCnpjRegex = CnpjCpfRegex();
 
-    private static readonly Regex EmailRegex = new(@"[^@\s]+@[^@\s]+\.[^@\s]+", RegexOptions.Compiled);
+    private static readonly Regex EmailRegex = RegexEmail();
 
     public Dictionary<string, List<string>> SanitizeMetaData(Dictionary<string, List<string>> rawMetaData)
     {
@@ -65,4 +64,9 @@ public class DataSanitizerService : IDataSanitizerService
 
         return sanitized;
     }
+
+    [GeneratedRegex(@"\d{3}\.?\d{3}\.?\d{3}-?\d{2}|\d{2}\.?\d{3}\.?\d{3}/\d{4}-?\d{2}", RegexOptions.Compiled)]
+    private static partial Regex CnpjCpfRegex();
+    [GeneratedRegex(@"[^@\s]+@[^@\s]+\.[^@\s]+", RegexOptions.Compiled)]
+    private static partial Regex RegexEmail();
 }

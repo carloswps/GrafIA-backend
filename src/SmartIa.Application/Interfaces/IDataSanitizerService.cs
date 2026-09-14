@@ -1,4 +1,4 @@
-namespace smart_ia.Services.Interfaces;
+namespace SmartIa.Application.Interfaces;
 
 public interface IDataSanitizerService
 {

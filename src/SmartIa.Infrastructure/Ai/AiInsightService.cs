@@ -1,11 +1,12 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
-using smart_ia.Dtos;
-using smart_ia.Services.Interfaces;
+using SmartIa.Application.Dtos;
+using SmartIa.Application.Interfaces;
 
-namespace smart_ia.Services;
+namespace SmartIa.Infrastructure.Ai;
 
-public class AiInsightService
+public class AiInsightService : IAiInsightService
 {
     private readonly Kernel _kernel;
     private readonly ILogger<AiInsightService> _logger;
@@ -64,17 +65,17 @@ public class AiInsightService
 
         _logger.LogInformation("Invocando prompt para gerar insight para a metrica '{ColumnY}' por '{ColumnX}'",
             summaryDto.ColumnY, summaryDto.ColumnX);
-        _logger.LogInformation("Dados gerados: {res}", res);
 
         try
         {
             var result = await _kernel.InvokePromptAsync(prompt, arguments);
             return result.ToString();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return
-                $"Destaque principal: '{safePairs[0].Label}' lidera com {safePairs[0].Value:N2}";
+            _logger.LogError(ex, "Falha ao gerar insight via IA para '{ColumnY}' por '{ColumnX}'",
+        summaryDto.ColumnY, summaryDto.ColumnX);
+            return $"Destaque principal: '{safePairs[0].Label}' lidera com {safePairs[0].Value:N2}";
         }
     }
 }
