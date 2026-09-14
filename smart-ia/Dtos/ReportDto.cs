@@ -61,3 +61,7 @@ public class ChartRecommendationRequest
 {
     public IFormFile File { get; set; } = null!;
 }
+
+public record DataSummaryDto(
+    decimal Total, decimal Media, decimal Max, decimal Min, double ShareTop1, double ShareTop3, string ColumnX, string ColumnY
+);

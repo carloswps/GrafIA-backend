@@ -27,7 +27,6 @@ public class ReportController : ControllerBase
 
         var parametrs = new ParametersFilterDto(null, null, null, null);
         if (!string.IsNullOrWhiteSpace(request.ParametersJson))
-        {
             try
             {
                 parametrs = JsonSerializer.Deserialize<ParametersFilterDto>(request.ParametersJson) ?? parametrs;
@@ -36,27 +35,29 @@ public class ReportController : ControllerBase
             {
                 return BadRequest("ParametersJson inválido");
             }
-        }
 
         using var stream = request.File.OpenReadStream();
         var ext = Path.GetExtension(request.File.FileName).ToLowerInvariant();
         var blocks = new List<BlockReportDto>();
 
 
-
         if (ext == ".xlsx" || ext == ".xls")
         {
-            foreach (var (title, labels, values) in _dataProcessor.ProcessDataExcelMulti(stream, parametrs))
+            foreach (var (title, labels, values, summary) in _dataProcessor.ProcessDataExcelMulti(stream, parametrs))
             {
-                var insight = await _aiInsightService.GenerateInsightAsync(labels, values, parametrs?.ColumnY ?? title);
-                blocks.Add(new BlockReportDto(title, DataProcessService.DetectGraphicType(labels, values), labels, new List<DatasetDto> { new(parametrs?.ColumnY ?? "Total", values) }, insight));
+                var insight = await _aiInsightService.GenerateInsightAsync(labels, values, summary);
+                blocks.Add(new BlockReportDto(title, DataProcessService.DetectGraphicType(labels, values), labels,
+                    new List<DatasetDto> { new(summary.ColumnY == string.Empty ? "Total" : summary.ColumnY, values) },
+                    insight));
             }
         }
         else
         {
-            var (labels, values) = _dataProcessor.ProcessDataCsv(stream, parametrs);
-            var insight = await _aiInsightService.GenerateInsightAsync(labels, values, parametrs?.ColumnY ?? "Valores");
-            blocks.Add(new BlockReportDto("CSV", DataProcessService.DetectGraphicType(labels, values), labels, new List<DatasetDto> { new(parametrs?.ColumnY ?? "Total", values) }, insight));
+            var (labels, values, summary) = _dataProcessor.ProcessDataCsv(stream, parametrs);
+            var insight = await _aiInsightService.GenerateInsightAsync(labels, values, summary);
+            blocks.Add(new BlockReportDto("CSV", DataProcessService.DetectGraphicType(labels, values), labels,
+                new List<DatasetDto> { new(summary.ColumnY == string.Empty ? "Total" : summary.ColumnY, values) },
+                insight));
         }
 
         if (blocks == null || !blocks.Any())
