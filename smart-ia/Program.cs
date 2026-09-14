@@ -1,5 +1,6 @@
 using Microsoft.SemanticKernel;
 using smart_ia.Services;
+using smart_ia.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<DataProcessService>();
 builder.Services.AddScoped<AiInsightService>();
 builder.Services.AddScoped<ChartAiService>();
+builder.Services.AddSingleton<IDataSanitizerService, DataSanitizerService>();
 
 var llmConfig = builder.Configuration.GetSection("LLM");
 var apiKey = llmConfig["ApiKey"];
@@ -21,21 +23,19 @@ var endpoint = llmConfig["Endpoint"];
 var kernelBuilder = builder.Services.AddKernel();
 
 if (!string.IsNullOrEmpty(apiKey))
-{
     kernelBuilder.AddOpenAIChatCompletion(
-        modelId: modelId,
-        endpoint: new Uri(endpoint),
-        apiKey: apiKey
+        modelId,
+        new Uri(endpoint),
+        apiKey
     );
-}
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
     {
         policy.WithOrigins("http://localhost:4200")
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+            .AllowAnyMethod()
+            .AllowAnyHeader();
     });
 });
 

@@ -1,6 +1,7 @@
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using smart_ia.Dtos;
+using smart_ia.Services.Interfaces;
 
 namespace smart_ia.Services;
 
@@ -8,11 +9,13 @@ public class AiInsightService
 {
     private readonly Kernel _kernel;
     private readonly ILogger<AiInsightService> _logger;
+    private readonly IDataSanitizerService _dataSanitizerService;
 
-    public AiInsightService(Kernel kernel, ILogger<AiInsightService> logger)
+    public AiInsightService(Kernel kernel, ILogger<AiInsightService> logger, IDataSanitizerService dataSanitizerService)
     {
         _kernel = kernel;
         _logger = logger;
+        _dataSanitizerService = dataSanitizerService;
     }
 
     public async Task<string> GenerateInsightAsync(List<string> labels, List<decimal> values, DataSummaryDto summaryDto)
@@ -21,15 +24,30 @@ public class AiInsightService
             return "Nenhum dado disponível para análise";
 
         var culture = new System.Globalization.CultureInfo("pt-BR");
-        var res = string.Join(", ", labels.Zip(values, (l, v) => $"{l}: {v.ToString("N2", culture)}"));
 
+        var raw = new Dictionary<string, List<string>> { [summaryDto.ColumnX] = labels };
+        var safe = _dataSanitizerService.SanitizeMetaData(raw);
+
+        if (!safe.ContainsKey(summaryDto.ColumnX)) return "Coluna não permitida para análise por IA.";
+
+        var safeSet = new HashSet<string>(safe[summaryDto.ColumnX]);
+
+        var safePairs = labels
+            .Zip(values, (l, v) => (Label: l, Value: v))
+            .Where(p => safeSet.Contains(p.Label))
+            .ToList();
+
+        if (!safePairs.Any()) return "Nenhum dado permitido para análise.";
+
+        var res = string.Join(", ", safePairs.Select(p => $"{p.Label}: {p.Value.ToString("N2", culture)}"));
         _logger.LogInformation("Gerando insight para a metrica '{ColumnY}' por '{ColumnX}' com dados: {res}",
             summaryDto.ColumnY, summaryDto.ColumnX, res);
 
+
         var prompt = """
-                         Analise '{{$colY}}' por '{{$colX}}': [{{$dados}}].
-                         Total={{$total}} Media={{$media}} Top1={{$top1}}% Top3={{$top3}}%.
-                         Regras: nao assuma moeda. Nao use R$, $ ou %. Use apenas numeros fornecidos. Maximo 3 frases: lider, concentracao, acao.
+                        Analise '{{$colY}}' por '{{$colX}}': [{{$dados}}].
+                        Total={{$total}} Media={{$media}} Top1={{$top1}}% Top3={{$top3}}%.
+                        Regras: nao assuma moeda. Nao use R$, $ ou %. Use apenas numeros fornecidos. Maximo 3 frases: lider, concentracao, acao.
                      """;
 
         var settings = new OpenAIPromptExecutionSettings { Temperature = 0, MaxTokens = 220 };
@@ -55,7 +73,8 @@ public class AiInsightService
         }
         catch (Exception)
         {
-            return $"Destaque principal: '{labels.FirstOrDefault()}' lidera com {values.FirstOrDefault():N2}.";
+            return
+                $"Destaque principal: '{safePairs[0].Label}' lidera com {safePairs[0].Value:N2}";
         }
     }
 }
