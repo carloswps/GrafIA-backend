@@ -53,16 +53,26 @@ public class AiInsightService : IAiInsightService
             summaryDto.ColumnY, summaryDto.ColumnX, res);
 
         var prompt = """
-                        Analise '{{$colY}}' por '{{$colX}}': [{{$dados}}].
-                        Ranking: {{$ranking}}.
-                        Total={{$total}} Media={{$media}} Top1={{$top1}} Top3={{$top3}} (acumulados, em percentual).
-                        Escolha o melhor grafico considerando a quantidade de categorias e a distribuicao.
-                        Responda ESTRITAMENTE em JSON, sem texto fora do JSON:
-                        {"chartType":"","insight":""}
-                        chartType DEVE ser um de: pie, bar, line, kpi. Nunca invente outros valores.
-                        insight: maximo 3 frases (lider, concentracao, acao), sem R$, $ ou %,
-                        usando apenas os numeros fornecidos. Se Top1 e Top3 forem quase iguais, nao mencione Top3.
-                     """;
+            Analise a métrica '{{$colY}}' agrupada pela dimensão '{{$colX}}': [{{$dados}}].
+            Dados do Ranking: {{$ranking}}.
+            Estatísticas Consolidadas: Total={{$total}}, Média={{$media}}, Share Top 1={{$top1}}, Share Top 3={{$top3}} (valores percentuais acumulados).
+
+            DIRETRIZES DE DECISÃO DE GRÁFICO (chartType):
+            1. Se houver apenas 1 categoria/registro, use obrigatoriamente "kpi".
+            2. Se a dimensão '{{$colX}}' for data, tempo ou período, use obrigatoriamente "line".
+            3. Se houver até 5 categorias e a distribuição for equilibrada, prefira "pie".
+            4. Nos demais casos ou para comparar rankings, use "bar".
+
+            REGRAS DE RESPOSTA (ESTRITAS):
+            - Retorne APENAS um objeto JSON válido, sem marcadores markdown (como ```json) e sem texto explicativo antes ou depois.
+            - O campo "chartType" deve ser EXATAMENTE um destes valores: "pie", "bar", "line" ou "kpi".
+            - O campo "insight" deve conter no máximo 3 frases com a seguinte estrutura: (1) Quem é o líder e seu valor; (2) O nível de concentração/relevância; (3) Uma sugestão objetiva de ação.
+            - NUNCA inclua os símbolos de moeda ou porcentagem (como R$, $, ou %). Escreva apenas os números conforme fornecidos.
+            - Se a diferença entre Top1 e Top3 for irrelevante ou inexistente, NÃO mencione o Top3.
+
+            FORMATO DA SAÍDA:
+            {"chartType": "bar", "insight": "Frase 1. Frase 2. Frase 3."}
+            """;
 
         var settings = new OpenAIPromptExecutionSettings { Temperature = 0, MaxTokens = 320 };
         var arguments = new KernelArguments(settings)

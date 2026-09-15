@@ -43,11 +43,30 @@ public class ChartAiService : IChartAiService
         };
 
         var prompt = """
-                     Recomende gráfico para '{{$metadata}}'.
-                     Responda ESTRITAMENTE em JSON: {"chartType":"","columnX":"","columnY":"","title":"","reason":""}
-                     chartType DEVE ser um de: pie, bar, line, kpi.
-                     columnX e columnY DEVEM ser nomes existentes na lista de colunas fornecida.
-                     """;
+            Recomende a melhor visualização em gráfico com base nos metadados da tabela:
+            METADADOS: {{$metadata}}
+
+            REGRAS DE SELEÇÃO:
+            - chartType: Deve ser EXATAMENTE um destes valores: "pie", "bar", "line" ou "kpi".
+            - columnX: Nome da coluna para o eixo X (dimensão/categoria/data). Deve existir rigorosamente na lista de colunas dos metadados.
+            - columnY: Nome da coluna para o eixo Y (métrica/valor numérico). Deve existir rigorosamente na lista de colunas dos metadados.
+            - title: Um título curto e descritivo em português para o gráfico (ex: "Vendas por Região").
+            - reason: Uma justificativa direta de no máximo 1 frase explicando a escolha do gráfico.
+
+            DIRETRIZES DE TIPO DE GRÁFICO:
+            1. Se houver apenas 1 registro ou 1 coluna métrica relevante, escolha "kpi".
+            2. Se a coluna selecionada para columnX for do tipo data/tempo, escolha "line".
+            3. Se columnX tiver poucas categorias (até 5) com distribuição bem dividida, escolha "pie".
+            4. Para comparar categorias, rankings ou cardinalidade maior, escolha "bar".
+
+            REGRAS DE FORMATO (ESTRITAS):
+            - Retorne APENAS o JSON válido.
+            - NUNCA inclua marcações Markdown como ```json no início ou no fim.
+            - NUNCA adicione saudações ou explicações fora do objeto JSON.
+
+            EXEMPLO DE RESPOSTA:
+            {"chartType":"bar","columnX":"UF","columnY":"Total","title":"Total de Vendas por Estado","reason":"Gráfico de barras ideal para comparar valores entre diferentes estados."}
+            """;
 
         var allowedColumns = safeMetadata.Columns
             .Select(c => c.Name)
