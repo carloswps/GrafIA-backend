@@ -1,0 +1,50 @@
+[
+  {
+    "label": "build",
+    "command": "dotnet build smart-ia.slnx",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false,
+    "reveal": "always"
+  },
+  {
+    "label": "run: SmartIa.Api (http)",
+    "command": "dotnet run --project src/SmartIa.Api/SmartIa.Api.csproj --launch-profile http",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "use_new_terminal": true,
+    "allow_concurrent_runs": false,
+    "reveal": "always"
+  },
+  {
+    "label": "watch: SmartIa.Api (http)",
+    "command": "dotnet watch run --project src/SmartIa.Api/SmartIa.Api.csproj --launch-profile http",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "use_new_terminal": true,
+    "allow_concurrent_runs": false,
+    "reveal": "always"
+  },
+  {
+    "label": "test",
+    "command": "dotnet test tests/SmartIa.Tests/SmartIa.Tests.csproj",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false,
+    "reveal": "always"
+  },
+  {
+    "label": "restore",
+    "command": "dotnet restore smart-ia.slnx",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false,
+    "reveal": "always"
+  },
+  {
+    "label": "clean",
+    "command": "dotnet clean smart-ia.slnx",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false,
+    "reveal": "always"
+  }
+]

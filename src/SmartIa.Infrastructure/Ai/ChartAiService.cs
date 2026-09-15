@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
+using SmartIa.Application.Domain;
 using SmartIa.Application.Dtos;
 using SmartIa.Application.Interfaces;
 
@@ -8,10 +9,6 @@ namespace SmartIa.Infrastructure.Ai;
 
 public class ChartAiService : IChartAiService
 {
-    private static readonly HashSet<string> AllowedChartTypes = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "pie", "bar", "line", "kpi"
-    };
 
     private readonly Kernel _kernel;
     private readonly ILogger<ChartAiService> _logger;
@@ -74,11 +71,11 @@ public class ChartAiService : IChartAiService
         }
     }
 
-    public static ChartRecommendationDto ValidatePlan(ChartRecommendationDto? plan, HashSet<string> allowedColumns)
+    public static ChartRecommendationDto ValidatePlan(ChartRecommendationDto? plan, IReadOnlySet<string> allowedColumns)
     {
         if (plan is null) return Fallback();
 
-        if (!AllowedChartTypes.Contains(plan.ChartType))
+        if (!GraphicTypeDetector.KnownTypes.Contains(plan.ChartType))
             plan.ChartType = "bar";
 
         if (!string.IsNullOrWhiteSpace(plan.ColumnX) && !allowedColumns.Contains(plan.ColumnX))

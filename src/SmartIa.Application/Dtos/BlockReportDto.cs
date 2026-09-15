@@ -31,7 +31,6 @@ public record BlockKpisDto(
     [property: JsonPropertyName("isTruncated")] bool IsTruncated
 );
 
-/// <summary>Posicao do ranking com sua fatia INDIVIDUAL sobre o total.</summary>
 public record TopItemDto(
     [property: JsonPropertyName("rank")] int Rank,
     [property: JsonPropertyName("label")] string Label,

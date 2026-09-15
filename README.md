@@ -13,6 +13,9 @@
 - [Pré-requisitos](#pré-requisitos)
 - [Configuração](#configuração)
 - [Como Executar](#como-executar)
+  - [Via VS Code (tasks)](#via-vs-code-tasks)
+  - [Via Zed (tasks)](#via-zed-tasks)
+  - [Via CLI](#via-cli)
 - [Endpoints](#endpoints)
   - [POST /api/report/process](#1-gerar-relatório--post-apireportprocess)
   - [POST /api/chart/recommend](#2-recomendar-gráfico--post-apichartrecommend)
@@ -58,7 +61,7 @@ Quando o LLM não está disponível, a API cai em **fallback determinístico** e
 
 ## Arquitetura
 
-Clean Architecture em 4 projetos:
+Clean Architecture em 3 projetos (`src/`) + 1 de testes:
 
 ```
 smart-ia-mvp/
@@ -67,7 +70,7 @@ smart-ia-mvp/
 │   ├── SmartIa.Application/     # UseCases, Interfaces, DTOs, Domain (GraphicTypeDetector, Policies)
 │   ├── SmartIa.Infrastructure/  # AI (Semantic Kernel), Files (CSV/Excel), Sanitization, Reports
 └── tests/
-    └── SmartIa.Tests/           # xUnit
+    └── SmartIa.Tests/           # xUnit + Moq
 ```
 
 ### Fluxo de processamento
@@ -97,13 +100,13 @@ GenerateReportUseCase / RecommendChartUseCase
 
 ## Stack Tecnológica
 
-| Camada              | Tecnologia                                             |
-| ------------------- | ------------------------------------------------------ |
-| Runtime             | .NET 10 / ASP.NET Core Web API                         |
-| LLM                 | Microsoft Semantic Kernel 1.80.1 + `Connectors.OpenAI` |
-| Leitura de arquivos | CsvHelper 33.1.0, ExcelDataReader 3.9.0                |
-| Documentação        | Swashbuckle.AspNetCore (Swagger)                       |
-| Testes              | xUnit                                                  |
+| Camada              | Tecnologia                                              |
+| ------------------- | ------------------------------------------------------- |
+| Runtime             | .NET 10 / ASP.NET Core Web API                          |
+| LLM                 | Microsoft Semantic Kernel 1.80.1 + `Connectors.OpenAI`  |
+| Leitura de arquivos | CsvHelper 33.1.0, ExcelDataReader 3.9.0 + DataSet 3.9.0 |
+| Documentação        | Swashbuckle.AspNetCore (Swagger) 10.2.3                 |
+| Testes              | xUnit 2.9.3 + Moq 4.20.72                               |
 
 ---
 
@@ -121,15 +124,15 @@ Edite `src/SmartIa.Api/appsettings.json`:
 ```json
 {
   "LLM": {
-    "Provedor": "DeepSeek",
-    "ApiKey": "sk-...",
-    "ModelId": "deepseek-chat",
-    "Endpoint": "https://api.deepseek.com"
+    "Provedor": "",
+    "ApiKey": "",
+    "ModelId": "",
+    "Endpoint": ""
   }
 }
 ```
 
-> ⚠️ **Nunca commite a chave real.** Use User Secrets ou variáveis de ambiente em desenvolvimento:
+> ⚠️ **Nunca commite a chave real.**
 
 ```bash
 dotnet user-secrets init --project src/SmartIa.Api
@@ -143,6 +146,20 @@ dotnet user-secrets set "LLM:Endpoint"    "https://api.deepseek.com"  --project 
 ---
 
 ## Como Executar
+
+### Via VS Code (tasks)
+
+`Terminal > Run Task...` (ou `Ctrl+Shift+P > Tasks: Run Task`):
+
+| Task                        | Comando equivalente                                                             |
+| --------------------------- | ------------------------------------------------------------------------------- |
+| `build` (Ctrl+Shift+B)      | `dotnet build smart-ia.slnx`                                                    |
+| `run: SmartIa.Api (http)`   | `dotnet run --project src/SmartIa.Api --launch-profile http`                    |
+| `watch: SmartIa.Api (http)` | `dotnet watch run --project src/SmartIa.Api --launch-profile http` (hot-reload) |
+| `test`                      | `dotnet test tests/SmartIa.Tests`                                               |
+| `restore` / `clean`         | `dotnet restore/clean smart-ia.slnx`                                            |
+
+### Via CLI
 
 ```bash
 dotnet restore

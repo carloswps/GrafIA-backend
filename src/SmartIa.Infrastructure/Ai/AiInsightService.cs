@@ -109,7 +109,7 @@ public class AiInsightService : IAiInsightService
     }
 
     private static string TextFallback(List<(string Label, decimal Value)> ranked, System.Globalization.CultureInfo culture)
-        => ranked.Any()
+        => ranked.Count != 0
             ? $"Destaque principal: '{ranked[0].Label}' lidera com {ranked[0].Value.ToString("N2", culture)}"
             : "Sem dados para análise";
 }

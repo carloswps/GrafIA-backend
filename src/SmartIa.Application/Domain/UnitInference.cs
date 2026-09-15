@@ -17,7 +17,6 @@ public static class UnitInference
 
         if (columnY.Contains("(%)", StringComparison.Ordinal)) return "%";
 
-        // normaliza para casar "Unit Bruto" (arquivo 2) e "UnitBruto" (arquivo 1)
         var normalized = HeaderNormalizer.Normalize(columnY);
 
         if (Money.Contains(normalized)) return "BRL";
@@ -25,5 +24,4 @@ public static class UnitInference
         if (normalized.Contains("percent", StringComparison.Ordinal)) return "%";
         return "number";
     }
-
 }
