@@ -7,4 +7,5 @@ public class ChartRecommendationDto
     public string ColumnY { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string Reason { get; set; } = string.Empty;
+    public string SheetName { get; set; } = string.Empty;
 }

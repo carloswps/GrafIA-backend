@@ -18,7 +18,7 @@ public class ChartController : ControllerBase
 
     [HttpPost("recommend")]
     [Consumes("multipart/form-data")]
-    public async Task<ActionResult<ChartRecommendationDto>> Recommend([FromForm] ChartRecommendationRequest request)
+    public async Task<ActionResult<ChartRecommendationResponseDto>> Recommend([FromForm] ChartRecommendationRequest request)
     {
         if (request.File == null || request.File.Length == 0)
             return BadRequest("Arquivo obrigatorio");
@@ -26,6 +26,6 @@ public class ChartController : ControllerBase
         using var stream = request.File.OpenReadStream();
         var result = await _recommendChart.ExecuteAsync(stream, request.File.FileName);
 
-        return Ok(result);
+        return Ok(new ChartRecommendationResponseDto(result));
     }
 }

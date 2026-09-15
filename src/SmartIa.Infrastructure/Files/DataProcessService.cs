@@ -13,21 +13,21 @@ public class DataProcessService : IDataProcessService
         _logger = logger;
     }
 
-    public (List<string> Labels, List<decimal> Values, DataSummaryDto Summary) ProcessDataCsv(Stream csvStream,
-        ParametersFilterDto filters)
+    public ProcessResultDto ProcessDataCsv(Stream csvStream, ParametersFilterDto filters)
     {
         var cleanRecords = FileRecordsReader.ReadCsv(csvStream);
 
         if (!cleanRecords.Any())
-            return (new List<string>(), new List<decimal>(),
-                new DataSummaryDto(0, 0, 0, 0, 0, 0, filters.ColumnX ?? string.Empty, filters.ColumnY ?? string.Empty));
+            return new ProcessResultDto("CSV", new List<string>(), new List<decimal>(),
+                new DataSummaryDto(0, 0, 0, 0, 0, 0, filters.ColumnX ?? string.Empty, filters.ColumnY ?? string.Empty),
+                0, null, null);
 
         var firstKey = cleanRecords.First().Keys.First();
         var secondKey = cleanRecords.First().Keys.Skip(1).FirstOrDefault() ?? firstKey;
 
         _logger.LogInformation("CSV: headers=[{Headers}]", string.Join(" | ", cleanRecords.First().Keys));
 
-        return Aggregate(cleanRecords, filters, firstKey, secondKey);
+        return BuildResult("CSV", cleanRecords, filters, firstKey, secondKey);
     }
 
     public List<Dictionary<string, string>> GetRawRecordsFromCsv(Stream csvStream)
@@ -35,21 +35,18 @@ public class DataProcessService : IDataProcessService
         return FileRecordsReader.ReadCsv(csvStream);
     }
 
-    public List<(string Title, List<string> Labels, List<decimal> Values, DataSummaryDto Summary)>
-        ProcessDataExcelMulti(Stream excelStream, ParametersFilterDto filters)
+    public List<ProcessResultDto> ProcessDataExcelMulti(Stream excelStream, ParametersFilterDto filters)
     {
-        var result = new List<(string, List<string>, List<decimal>, DataSummaryDto)>();
+        var result = new List<ProcessResultDto>();
 
         foreach (var (tableName, cleanRecords) in FileRecordsReader.ReadExcelAll(excelStream))
         {
             var firstKey = cleanRecords.First().Keys.First();
             var secondKey = cleanRecords.First().Keys.Skip(1).FirstOrDefault() ?? firstKey;
 
-            _logger.LogInformation("Aba '{Table}': headers=[{Headers}]",
-                tableName, string.Join(" | ", cleanRecords.First().Keys));
+            _logger.LogInformation("Aba '{Table}': headers=[{Headers}]", tableName, string.Join(" | ", cleanRecords.First().Keys));
 
-            var (labels, values, summary) = Aggregate(cleanRecords, filters, firstKey, secondKey);
-            result.Add((tableName, labels, values, summary));
+            result.Add(BuildResult(tableName, cleanRecords, filters, firstKey, secondKey));
         }
 
         return result;
@@ -75,9 +72,59 @@ public class DataProcessService : IDataProcessService
 
         _logger.LogInformation("ColumnX='{X}' ColumnY='{Y}' displayY='{Display}'", columnX, columnY, displayY);
 
-        var (labels, values) = DatasetAnalyzer.GroupTopValues(cleanRecords, columnX, columnY);
-        var summary = DatasetAnalyzer.BuildSummary(values, columnX, displayY);
+        var (labels, values, totalGroups) = DatasetAnalyzer.GroupTopValues(cleanRecords, columnX, columnY);
+        var summary = DatasetAnalyzer.BuildSummary(values, totalGroups, columnX, displayY);
 
         return (labels, values, summary);
+    }
+
+    private ProcessResultDto BuildResult(
+        string title, List<Dictionary<string, string>> cleanRecords, ParametersFilterDto filters,
+        string firstKey, string secondKey)
+    {
+        var (labels, values, summary) = Aggregate(cleanRecords, filters, firstKey, secondKey);
+        var (periodStart, periodEnd) = InferPeriod(cleanRecords);
+
+        return new ProcessResultDto(title, labels, values, summary, cleanRecords.Count, periodStart, periodEnd);
+    }
+
+    private static (DateTime? Start, DateTime? End) InferPeriod(List<Dictionary<string, string>> records)
+    {
+        if (records.Count == 0) return (null, null);
+
+        string? dateColumn = null;
+        foreach (var key in records.First().Keys)
+        {
+            var sample = records.Take(20)
+                .Select(r => r.GetValueOrDefault(key, ""))
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .ToList();
+
+            var looksLikeDate = sample.Count > 0 &&
+                                sample.All(v => DateTime.TryParse(v, out _)) &&
+                                sample.Any(v => v.Contains('/') || v.Contains('-') || v.Contains(':'));
+
+            if (looksLikeDate)
+            {
+                dateColumn = key;
+                break;
+            }
+        }
+
+        if (dateColumn is null) return (null, null);
+
+        var dates = records
+            .Select(r => r.GetValueOrDefault(dateColumn, ""))
+            .Select(v => DateTime.TryParse(v, out var d) ? d : (DateTime?)null)
+            .Where(d => d.HasValue)
+            .Select(d => d!.Value)
+            .ToList();
+
+        return dates.Count > 0 ? (dates.Min(), dates.Max()) : (null, null);
+    }
+
+    public List<(string TableName, List<Dictionary<string, string>> Records)> GetRawRecordsFromExcelAll(Stream excelStream)
+    {
+        return FileRecordsReader.ReadExcelAll(excelStream);
     }
 }

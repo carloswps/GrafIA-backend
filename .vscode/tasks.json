@@ -1,0 +1,71 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "command": "dotnet",
+      "type": "shell",
+      "args": ["build", "${workspaceFolder}/smart-ia.slnx"],
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": { "reveal": "silent" },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "run: SmartIa.Api (http)",
+      "command": "dotnet",
+      "type": "shell",
+      "args": [
+        "run",
+        "--project",
+        "${workspaceFolder}/src/SmartIa.Api/SmartIa.Api.csproj",
+        "--launch-profile",
+        "http"
+      ],
+      "group": "none",
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "watch: SmartIa.Api (http)",
+      "command": "dotnet",
+      "type": "shell",
+      "args": [
+        "watch",
+        "run",
+        "--project",
+        "${workspaceFolder}/src/SmartIa.Api/SmartIa.Api.csproj",
+        "--launch-profile",
+        "http"
+      ],
+      "group": "none",
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "test",
+      "command": "dotnet",
+      "type": "shell",
+      "args": ["test", "${workspaceFolder}/tests/SmartIa.Tests/SmartIa.Tests.csproj"],
+      "group": { "kind": "test", "isDefault": true },
+      "presentation": { "reveal": "always" },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "restore",
+      "command": "dotnet",
+      "type": "shell",
+      "args": ["restore", "${workspaceFolder}/smart-ia.slnx"],
+      "presentation": { "reveal": "silent" },
+      "problemMatcher": []
+    },
+    {
+      "label": "clean",
+      "command": "dotnet",
+      "type": "shell",
+      "args": ["clean", "${workspaceFolder}/smart-ia.slnx"],
+      "presentation": { "reveal": "silent" },
+      "problemMatcher": []
+    }
+  ]
+}

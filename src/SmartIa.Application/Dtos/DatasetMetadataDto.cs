@@ -4,6 +4,7 @@ public class DatasetMetadataDto
 {
     public int TotalRows { get; set; }
     public List<ColumnSummaryDto> Columns { get; set; } = new();
+    public string SheetName { get; set; } = string.Empty;
 }
 
 public class ColumnSummaryDto

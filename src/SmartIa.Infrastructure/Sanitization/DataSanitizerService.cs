@@ -1,13 +1,17 @@
+using System.Linq.Expressions;
 using System.Text.RegularExpressions;
+using SmartIa.Application.Domain;
+using SmartIa.Application.Dtos;
 using SmartIa.Application.Interfaces;
 
 namespace SmartIa.Infrastructure.Sanitization;
 
 public partial class DataSanitizerService : IDataSanitizerService
 {
+
     // whitelist: only allow these columns
-    private static readonly HashSet<string> AllowedColumns = new(StringComparer.OrdinalIgnoreCase)
-    {
+    private static readonly HashSet<string> AllowedColumns = new(
+    new[] {
         "Empresa", "Filial", "Nome Filial", "Cod Categoria", "Categoria",
         "Cod Produto", "Produto", "Regiao Cod", "Regiao", "UF", "Estado",
         "Cidade", "Bairro", "Natureza Operacao", "Desc Natureza", "Classificacao",
@@ -19,7 +23,22 @@ public partial class DataSanitizerService : IDataSanitizerService
         "UnitBruto", "Frete", "TotalBruto", "Qtd Dev", "Dev Unit", "Dev Total",
         "Dev Unit 2", "Dev Total 2", "Qtd Liq", "Venda Unit Liq", "Venda Total Liq",
         "Qtd Devolvida", "Valor Devolvido"
-    };
+    }.Select(HeaderNormalizer.Normalize), StringComparer.Ordinal);
+
+
+    private static readonly string[] DatePrefixes = new[] { "Data", "Dt", "Emissao", "Validade" }.Select(HeaderNormalizer.Normalize).ToArray();
+
+    private static readonly string[] PiiTerms =
+        new[]
+        {
+        "nascimento", "nasc", "admissao", "demissao", "cpf", "cnpj", "rg",
+        "carteira", "passaporte", "titulo", "eleitor", "pis", "pasep", "matricula",
+        "funcionario", "cliente", "fornecedor", "contato", "pessoal", "pessoa",
+        "email", "telefone", "celular", "fone", "whatsapp",
+        "endereco", "logradouro", "cep", "rua", "complemento",
+        "mae", "pai", "responsavel", "banco", "agencia", "conta"
+    }.Select(HeaderNormalizer.Normalize).ToArray();
+
 
     private static readonly Regex CpfCnpjRegex = CnpjCpfRegex();
 
@@ -44,16 +63,18 @@ public partial class DataSanitizerService : IDataSanitizerService
 
     private bool IsAllowedColumn(string columnName)
     {
-        if (AllowedColumns.Contains(columnName)) return true;
-
-        if (columnName.StartsWith("Data", StringComparison.OrdinalIgnoreCase) ||
-            columnName.StartsWith("Dt ", StringComparison.OrdinalIgnoreCase) ||
-            columnName.StartsWith("Emissao", StringComparison.OrdinalIgnoreCase) ||
-            columnName.StartsWith("Validade", StringComparison.OrdinalIgnoreCase))
-            return true;
-
-        return false;
+        if (string.IsNullOrWhiteSpace(columnName)) return false;
+        var normalized = HeaderNormalizer.Normalize(columnName);
+        if (normalized.Length == 0) return false;
+        if (AllowedColumns.Contains(normalized)) return true;
+        return HasDatePrefix(normalized) && !LooksLikePii(normalized);
     }
+
+    private static bool HasDatePrefix(string name) =>
+            DatePrefixes.Any(p => name.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+
+    private static bool LooksLikePii(string name) =>
+        PiiTerms.Any(t => name.Contains(t, StringComparison.OrdinalIgnoreCase));
 
     private string AnonymizeSampleValue(string value)
     {
