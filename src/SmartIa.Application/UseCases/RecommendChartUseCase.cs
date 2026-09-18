@@ -8,6 +8,9 @@ public class RecommendChartUseCase
     private readonly IDataProcessService _dataProcessor;
     private readonly IChartAiService _chartAiService;
 
+
+    private const int MaxParallelInsightRequests = 4;
+
     public RecommendChartUseCase(IDataProcessService dataProcessor, IChartAiService chartAiService)
     {
         _dataProcessor = dataProcessor;
@@ -21,16 +24,28 @@ public class RecommendChartUseCase
         var sheets = extension is ".xlsx" or ".xls" ? _dataProcessor.GetRawRecordsFromExcelAll(fileStream).Select(s => BuildMetadata(s.TableName, s.Records)).ToList() : new List<DatasetMetadataDto>
         { BuildMetadata("CSV", _dataProcessor.GetRawRecordsFromCsv(fileStream))};
 
-        var recommendations = new List<ChartRecommendationDto>();
+        var recommendations = new ChartRecommendationDto[sheets.Count];
 
-        foreach (var sheet in sheets)
+        using var throttle = new SemaphoreSlim(MaxParallelInsightRequests, MaxParallelInsightRequests);
+
+        var tasks = sheets.Select(async (sheet, index) =>
         {
-            var rec = await _chartAiService.GetChartRecommendationAsync(sheet, cancellationToken);
-            rec.SheetName = sheet.SheetName;
+            await throttle.WaitAsync(cancellationToken);
 
-            recommendations.Add(rec);
-        }
-        return recommendations;
+            try
+            {
+                var rec = await _chartAiService.GetChartRecommendationAsync(sheet, cancellationToken);
+                rec.SheetName = sheet.SheetName;
+                recommendations[index] = rec;
+            }
+            finally
+            {
+                throttle.Release();
+            }
+        });
+
+        await Task.WhenAll(tasks);
+        return recommendations.ToList();
     }
 
     private DatasetMetadataDto BuildMetadata(string sheetName, List<Dictionary<string, string>> records)

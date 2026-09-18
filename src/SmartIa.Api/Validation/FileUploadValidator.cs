@@ -1,5 +1,3 @@
-using System;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using SmartIa.Application.Exceptions;
 
 namespace SmartIa.Api.Validation;
@@ -11,7 +9,7 @@ public static class FileUploadValidator
     public static void EnsureValid(IFormFile? file)
     {
         if (file is null || file.Length == 0)
-            throw new ArgumentException("O  arquivo é obrigatório");
+            throw new ArgumentException("O arquivo é obrigatório");
 
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (!AllowedExtensions.Contains(extension))

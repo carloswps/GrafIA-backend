@@ -6,6 +6,8 @@ namespace SmartIa.Application.UseCases;
 
 public class GenerateReportUseCase
 {
+    private const int MaxParallelInsightRequests = 4;
+
     private readonly IDataProcessService _dataProcessor;
     private readonly IAiInsightService _aiInsightService;
 
@@ -18,14 +20,12 @@ public class GenerateReportUseCase
     public async Task<ReportResponseDto> ExecuteAsync(Stream fileStream, string fileName, ParametersFilterDto filters, CancellationToken cancellationToken = default)
     {
         var extension = GetExtension(fileName);
-        var blocks = new List<BlockReportDto>();
 
         var results = extension is ".xlsx" or ".xls"
             ? _dataProcessor.ProcessDataExcelMulti(fileStream, filters)
             : new List<ProcessResultDto> { _dataProcessor.ProcessDataCsv(fileStream, filters) };
 
-        foreach (var result in results)
-            blocks.Add(await BuildBlockAsync(result, blocks.Count, cancellationToken));
+        var blocks = await BuildBlocksAsync(results, cancellationToken);
 
         var inferredStart = results.Select(r => r.PeriodStart).Where(d => d.HasValue).Min();
         var inferredEnd = results.Select(r => r.PeriodEnd).Where(d => d.HasValue).Max();
@@ -93,6 +93,29 @@ public class GenerateReportUseCase
             Kpis: kpis,
             InsightsIa: analysis.Insights
         );
+    }
+
+    private async Task<List<BlockReportDto>> BuildBlocksAsync(List<ProcessResultDto> results, CancellationToken cancellationToken)
+    {
+        var blocks = new BlockReportDto[results.Count];
+
+        using var throttle = new SemaphoreSlim(MaxParallelInsightRequests, MaxParallelInsightRequests);
+
+        var tasks = results.Select(async (result, index) =>
+        {
+            await throttle.WaitAsync(cancellationToken);
+            try
+            {
+                blocks[index] = await BuildBlockAsync(result, index, cancellationToken);
+            }
+            finally
+            {
+                throttle.Release();
+            }
+        });
+
+        await Task.WhenAll(tasks);
+        return blocks.ToList();
     }
 
     private static string GetExtension(string fileName) =>
