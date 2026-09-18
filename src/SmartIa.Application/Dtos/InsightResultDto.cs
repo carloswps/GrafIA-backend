@@ -1,3 +1,5 @@
 namespace SmartIa.Application.Dtos;
 
-public record InsightResultDto(string? ChartType, string Insight);
+public record InsightItemDto(string Type, string Severity, string Text);
+
+public record InsightResultDto(string? ChartType, List<InsightItemDto> Insights);

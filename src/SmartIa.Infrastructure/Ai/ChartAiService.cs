@@ -48,16 +48,20 @@ public class ChartAiService : IChartAiService
 
             REGRAS DE SELEÇÃO:
             - chartType: Deve ser EXATAMENTE um destes valores: "pie", "bar", "line" ou "kpi".
+                NUNCA invente outros tipos (ex.: "scatter", "radar", "area", "donut", "treemap", "sankey").
+                Se estiver em dúvida, use "bar".
             - columnX: Nome da coluna para o eixo X (dimensão/categoria/data). Deve existir rigorosamente na lista de colunas dos metadados.
             - columnY: Nome da coluna para o eixo Y (métrica/valor numérico). Deve existir rigorosamente na lista de colunas dos metadados.
             - title: Um título curto e descritivo em português para o gráfico (ex: "Vendas por Região").
             - reason: Uma justificativa direta de no máximo 1 frase explicando a escolha do gráfico.
 
             DIRETRIZES DE TIPO DE GRÁFICO:
-            1. Se houver apenas 1 registro ou 1 coluna métrica relevante, escolha "kpi".
-            2. Se a coluna selecionada para columnX for do tipo data/tempo, escolha "line".
-            3. Se columnX tiver poucas categorias (até 5) com distribuição bem dividida, escolha "pie".
-            4. Para comparar categorias, rankings ou cardinalidade maior, escolha "bar".
+                1. Se houver apenas 1 registro ou 1 coluna métrica relevante, escolha "kpi" ou "gauge".
+                2. Se a coluna selecionada para columnX for do tipo data/tempo, escolha "line".
+                3. Se columnX tiver poucas categorias (até 5) com distribuição bem dividida, escolha "pie".
+                4. Se as categorias representarem ETAPAS de um processo (3 a 8), escolha "funnel".
+                5. Para comparar categorias, rankings ou cardinalidade maior, escolha "bar".
+                6. Use "pictorialBar" apenas como variação visual de "bar" (2 a 10 categorias).
 
             REGRAS DE FORMATO (ESTRITAS):
             - Retorne APENAS o JSON válido.
@@ -68,10 +72,6 @@ public class ChartAiService : IChartAiService
             {"chartType":"bar","columnX":"UF","columnY":"Total","title":"Total de Vendas por Estado","reason":"Gráfico de barras ideal para comparar valores entre diferentes estados."}
             """;
 
-        var allowedColumns = safeMetadata.Columns
-            .Select(c => c.Name)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
         try
         {
             var result = await _kernel.InvokePromptAsync(prompt,
@@ -81,7 +81,7 @@ public class ChartAiService : IChartAiService
             var plan = JsonSerializer.Deserialize<ChartRecommendationDto>(json,
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-            return ValidatePlan(plan, allowedColumns);
+            return ValidatePlan(plan, safeMetadata);
         }
         catch (Exception ex)
         {
@@ -90,18 +90,22 @@ public class ChartAiService : IChartAiService
         }
     }
 
-    public static ChartRecommendationDto ValidatePlan(ChartRecommendationDto? plan, IReadOnlySet<string> allowedColumns)
+    public static ChartRecommendationDto ValidatePlan(ChartRecommendationDto? plan, DatasetMetadataDto metadata)
     {
+
         if (plan is null) return Fallback();
 
-        if (!GraphicTypeDetector.KnownTypes.Contains(plan.ChartType))
-            plan.ChartType = "bar";
+        var columns = metadata.Columns.ToDictionary(c => c.Name, StringComparer.OrdinalIgnoreCase);
 
-        if (!string.IsNullOrWhiteSpace(plan.ColumnX) && !allowedColumns.Contains(plan.ColumnX))
+        if (!string.IsNullOrWhiteSpace(plan.ColumnX) && !columns.ContainsKey(plan.ColumnX))
             plan.ColumnX = string.Empty;
 
-        if (!string.IsNullOrWhiteSpace(plan.ColumnY) && !allowedColumns.Contains(plan.ColumnY))
+        if (!string.IsNullOrWhiteSpace(plan.ColumnY) && !columns.ContainsKey(plan.ColumnY))
             plan.ColumnY = string.Empty;
+
+        var xCol = !string.IsNullOrWhiteSpace(plan.ColumnX) && columns.TryGetValue(plan.ColumnX, out var c) ? c : null;
+
+        plan.ChartType = xCol is null ? "bar" : GraphicTypeDetector.Resolve(plan.ChartType, xCol.Type, xCol.UniqueValuesCount);
 
         return plan;
     }

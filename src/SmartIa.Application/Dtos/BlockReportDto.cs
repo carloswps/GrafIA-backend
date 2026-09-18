@@ -12,7 +12,7 @@ public record BlockReportDto(
     [property: JsonPropertyName("labels")] List<string> Labels,
     [property: JsonPropertyName("datasets")] List<DatasetDto> Datasets,
     [property: JsonPropertyName("kpis")] BlockKpisDto Kpis,
-    [property: JsonPropertyName("insightsIa")] string? InsightsIa
+    [property: JsonPropertyName("insightsIa")] List<InsightItemDto> InsightsIa
 );
 
 public record BlockKpisDto(

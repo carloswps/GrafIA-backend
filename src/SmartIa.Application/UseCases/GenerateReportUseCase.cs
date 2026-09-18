@@ -91,7 +91,7 @@ public class GenerateReportUseCase
             Labels: labels,
             Datasets: new List<DatasetDto> { new(metricLabel, values) },
             Kpis: kpis,
-            InsightsIa: analysis.Insight
+            InsightsIa: analysis.Insights
         );
     }
 
