@@ -7,7 +7,7 @@ namespace SmartIa.Infrastructure.Files;
 
 public static class DatasetAnalyzer
 {
-    private const int MaxGroups = 10;
+    private const int MaxGroups = 20;
 
     private static readonly string[] PriorityMetricNames =
         { "Total", "TotalBruto", "Venda Total Liq", "Valor", "Valor Devolvido" };
@@ -19,7 +19,7 @@ public static class DatasetAnalyzer
             "Grupo", "Nome Grupo", "Canal", "Sistema", "Especialidade", "Natureza Operacao"
         }.Select(HeaderNormalizer.Normalize).ToHashSet(StringComparer.Ordinal);
 
-    public static (List<string> Labels, List<decimal> Values, int TotalGroups) GroupTopValues(
+    public static (List<string> Labels, List<decimal> Values, List<decimal> AllValues, int TotalGroups) GroupTopValues(
         List<Dictionary<string, string>> cleanRecords, string columnX, string columnY)
     {
         var groups = cleanRecords
@@ -35,7 +35,9 @@ public static class DatasetAnalyzer
 
         var totalGroups = groups.Count;
         if (totalGroups == 0)
-            return (new List<string>(), new List<decimal>(), 0);
+            return (new List<string>(), new List<decimal>(), new List<decimal>(), 0);
+
+        var allValues = groups.Select(g => g.Values).ToList();
 
         if (IsDateDimension(groups.Select(g => g.Key)))
         {
@@ -47,33 +49,37 @@ public static class DatasetAnalyzer
                 .OrderBy(x => x.Date!.Value)
                 .ToList();
 
-            return (chrono.Select(x => x.Key).ToList(),
-                    chrono.Select(x => x.Values).ToList(),
+            var shown = chrono.TakeLast(MaxGroups).ToList();
+
+            return (shown.Select(x => x.Key).ToList(),
+                    shown.Select(x => x.Values).ToList(),
+                    allValues,
                     totalGroups);
         }
+        var ordered = groups.OrderByDescending(x => x.Values).ToList();
 
-        var top = groups.OrderByDescending(x => x.Values).Take(MaxGroups).ToList();
-        return (top.Select(x => x.Key).ToList(), top.Select(x => x.Values).ToList(), totalGroups);
+        var top = ordered.Take(MaxGroups).ToList();
+        return (top.Select(x => x.Key).ToList(), top.Select(x => x.Values).ToList(), allValues, totalGroups);
     }
 
     public static DataSummaryDto BuildSummary(
-        List<decimal> values, int totalGroups, string columnX, string columnY)
+    List<decimal> allValues, int totalGroups, string columnX, string columnY, int groupsShown)
     {
-        var total = values.Sum();
-        var media = values.Any() ? total / values.Count : 0;
-        var max = values.Any() ? values.Max() : 0;
-        var min = values.Any() ? values.Min() : 0;
+        var total = allValues.Sum();
+        var media = allValues.Count > 0 ? total / allValues.Count : 0;
+        var max = allValues.Count > 0 ? allValues.Max() : 0;
+        var min = allValues.Count > 0 ? allValues.Min() : 0;
 
-        var top1 = total > 0 && values.Any() ? (double)(values.Max() / total * 100) : 0;
+        var top1 = total > 0 ? (double)(allValues.Max() / total * 100) : 0;
         var top3 = total > 0
-            ? (double)(values.OrderByDescending(v => v).Take(3).Sum() / total * 100)
+            ? (double)(allValues.OrderByDescending(v => v).Take(3).Sum() / total * 100)
             : 0;
 
         return new DataSummaryDto(
             total, media, max, min, top1, top3, columnX, columnY,
-            GroupsShown: values.Count,
+            GroupsShown: groupsShown,
             TotalGroups: totalGroups,
-            IsTruncated: totalGroups > values.Count);
+            IsTruncated: totalGroups > groupsShown);
     }
 
     public static bool IsGenericHeader(string h)

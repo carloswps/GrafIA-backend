@@ -72,8 +72,8 @@ public class DataProcessService : IDataProcessService
 
         _logger.LogInformation("ColumnX='{X}' ColumnY='{Y}' displayY='{Display}'", columnX, columnY, displayY);
 
-        var (labels, values, totalGroups) = DatasetAnalyzer.GroupTopValues(cleanRecords, columnX, columnY);
-        var summary = DatasetAnalyzer.BuildSummary(values, totalGroups, columnX, displayY);
+        var (labels, values, allValues, totalGroups) = DatasetAnalyzer.GroupTopValues(cleanRecords, columnX, columnY);
+        var summary = DatasetAnalyzer.BuildSummary(allValues, totalGroups, columnX, displayY, values.Count);
 
         return (labels, values, summary);
     }

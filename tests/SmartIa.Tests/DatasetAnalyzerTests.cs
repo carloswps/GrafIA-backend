@@ -34,7 +34,7 @@ public class DatasetAnalyzerTests
     {
         var records = Records(("03/01/2026", "100"), ("01/01/2026", "50"), ("02/01/2026", "10"));
 
-        var (labels, values, totalGroups) = DatasetAnalyzer.GroupTopValues(records, "Day", "Total");
+        var (labels, values, _, totalGroups) = DatasetAnalyzer.GroupTopValues(records, "Day", "Total");
 
         Assert.Equal(new[] { "01/01/2026", "02/01/2026", "03/01/2026" }, labels);
         Assert.Equal(new decimal[] { 50, 10, 100 }, values);
@@ -45,7 +45,7 @@ public class DatasetAnalyzerTests
     public void BuildSummary_ChronologicalAxis_UsesMaximumForCr1()
     {
         // values[0] = 50 (oldest), but the leader value is 100.
-        var summary = DatasetAnalyzer.BuildSummary(new List<decimal> { 50, 10, 100 }, 3, "Day", "Total");
+        var summary = DatasetAnalyzer.BuildSummary(new List<decimal> { 50, 10, 100 }, 3, "Day", "Total", groupsShown: 3);
 
         Assert.Equal(62.5, summary.ShareTop1, 2);    // 100/160 — NOT 50/160 = 31.25
         Assert.Equal(100.0, summary.ShareTop3, 2);   // with 3 groups, Top3 sums everything
@@ -55,7 +55,7 @@ public class DatasetAnalyzerTests
     public void BuildSummary_Cr3_SumsTopThreeRegardlessOfOrder()
     {
         // chronological order: 50, 10, 100, 5 -> total 165; top 3 largest = 100+50+10 = 160
-        var summary = DatasetAnalyzer.BuildSummary(new List<decimal> { 50, 10, 100, 5 }, 4, "Day", "Total");
+        var summary = DatasetAnalyzer.BuildSummary(new List<decimal> { 50, 10, 100, 5 }, 4, "Day", "Total", groupsShown: 4);
 
         Assert.Equal(96.97, summary.ShareTop3, 2);
     }
@@ -65,9 +65,9 @@ public class DatasetAnalyzerTests
     [Fact]
     public void BuildSummary_MoreThan10Groups_MarksIsTruncatedTrue()
     {
-        var values = Enumerable.Range(1, 10).Select(i => (decimal)i).ToList();
+        var values = Enumerable.Range(1, 27).Select(i => (decimal)i).ToList();
 
-        var summary = DatasetAnalyzer.BuildSummary(values, 27, "State", "Total");
+        var summary = DatasetAnalyzer.BuildSummary(values, 27, "State", "Total", groupsShown: 10);
 
         Assert.True(summary.IsTruncated);
         Assert.Equal(10, summary.GroupsShown);
@@ -77,7 +77,7 @@ public class DatasetAnalyzerTests
     [Fact]
     public void BuildSummary_UpTo10Groups_MarksIsTruncatedFalse()
     {
-        var summary = DatasetAnalyzer.BuildSummary(new List<decimal> { 1, 2, 3 }, 3, "State", "Total");
+        var summary = DatasetAnalyzer.BuildSummary(new List<decimal> { 1, 2, 3 }, 3, "State", "Total", groupsShown: 3);
 
         Assert.False(summary.IsTruncated);
     }

@@ -11,7 +11,7 @@ public class GenerateReportUseCaseTests
         var ai = new Mock<IAiInsightService>();
         ai.Setup(a => a.GenerateInsightAsync(
                 It.IsAny<List<string>>(), It.IsAny<List<decimal>>(), It.IsAny<DataSummaryDto>()))
-            .ReturnsAsync(new InsightResultDto(chartType, insight));
+            .ReturnsAsync(new InsightResultDto(chartType, new List<InsightItemDto> { new InsightItemDto("leader", "info", insight) }));
         return ai;
     }
 
@@ -117,7 +117,7 @@ public class GenerateReportUseCaseTests
         var result = await Run(ProcCsv(new() { "South", "North", "East" }, new() { 100m, 50m, 25m }), Ai(null, "text"));
 
         Assert.Equal("pie", result.Blocks[0].TypeGraphic);
-        Assert.Equal("text", result.Blocks[0].InsightsIa);
+        Assert.Equal("text", result.Blocks[0].InsightsIa[0].Text);
     }
 
     [Fact]
