@@ -22,7 +22,7 @@ public partial class DataSanitizerService : IDataSanitizerService
         "Qtd", "Unit", "Total", "Val IPI", "Val ICMS", "Vl IPI Unit", "VlICMSUnit",
         "UnitBruto", "Frete", "TotalBruto", "Qtd Dev", "Dev Unit", "Dev Total",
         "Dev Unit 2", "Dev Total 2", "Qtd Liq", "Venda Unit Liq", "Venda Total Liq",
-        "Qtd Devolvida", "Valor Devolvido"
+        "Qtd Devolvida", "Valor Devolvido", "Mes", "Ano","Cliente", "Grupo", "Produto", "Vendedor", "VALOR_META", "QTD_META"
     }.Select(HeaderNormalizer.Normalize), StringComparer.Ordinal);
 
 
