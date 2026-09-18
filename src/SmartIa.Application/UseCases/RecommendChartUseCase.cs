@@ -14,7 +14,7 @@ public class RecommendChartUseCase
         _chartAiService = chartAiService;
     }
 
-    public async Task<List<ChartRecommendationDto>> ExecuteAsync(Stream fileStream, string fileName)
+    public async Task<List<ChartRecommendationDto>> ExecuteAsync(Stream fileStream, string fileName, CancellationToken cancellationToken = default)
     {
         var extension = Path.GetExtension(fileName).ToLowerInvariant();
 
@@ -25,8 +25,9 @@ public class RecommendChartUseCase
 
         foreach (var sheet in sheets)
         {
-            var rec = await _chartAiService.GetChartRecommendationAsync(sheet);
+            var rec = await _chartAiService.GetChartRecommendationAsync(sheet, cancellationToken);
             rec.SheetName = sheet.SheetName;
+
             recommendations.Add(rec);
         }
         return recommendations;

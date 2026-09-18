@@ -10,7 +10,7 @@ public class GenerateReportUseCaseTests
     {
         var ai = new Mock<IAiInsightService>();
         ai.Setup(a => a.GenerateInsightAsync(
-                It.IsAny<List<string>>(), It.IsAny<List<decimal>>(), It.IsAny<DataSummaryDto>()))
+                It.IsAny<List<string>>(), It.IsAny<List<decimal>>(), It.IsAny<DataSummaryDto>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new InsightResultDto(chartType, new List<InsightItemDto> { new InsightItemDto("leader", "info", insight) }));
         return ai;
     }

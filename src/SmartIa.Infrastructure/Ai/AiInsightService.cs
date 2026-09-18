@@ -28,7 +28,7 @@ public class AiInsightService : IAiInsightService
         _dataSanitizerService = dataSanitizerService;
     }
 
-    public async Task<InsightResultDto> GenerateInsightAsync(List<string> labels, List<decimal> values, DataSummaryDto summaryDto)
+    public async Task<InsightResultDto> GenerateInsightAsync(List<string> labels, List<decimal> values, DataSummaryDto summaryDto, CancellationToken cancellationToken = default)
     {
         if (!labels.Any())
             return new InsightResultDto(null, new List<InsightItemDto>());
@@ -106,13 +106,18 @@ public class AiInsightService : IAiInsightService
 
         try
         {
-            var result = await _kernel.InvokePromptAsync(prompt, arguments);
+            var result = await _kernel.InvokePromptAsync(prompt, arguments, cancellationToken: cancellationToken);
             var json = ExtractJson(result.ToString());
 
             var parsed = JsonSerializer.Deserialize<InsightResultDto>(json,
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
             return Validate(parsed, ranked, summaryDto, culture);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogInformation("Geração de insights cancelada para '{ColumnY}' por '{ColumnX}'.", summaryDto.ColumnY, summaryDto.ColumnY);
+            throw;
         }
         catch (Exception ex)
         {

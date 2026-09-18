@@ -21,7 +21,7 @@ public class ChartAiService : IChartAiService
         _dataSanitizerService = dataSanitizerService;
     }
 
-    public async Task<ChartRecommendationDto> GetChartRecommendationAsync(DatasetMetadataDto metadata)
+    public async Task<ChartRecommendationDto> GetChartRecommendationAsync(DatasetMetadataDto metadata, CancellationToken cancellationToken = default)
     {
         var raw = metadata.Columns.ToDictionary(c => c.Name, c => c.SampleValues);
 
@@ -75,13 +75,18 @@ public class ChartAiService : IChartAiService
         try
         {
             var result = await _kernel.InvokePromptAsync(prompt,
-                new KernelArguments { ["metadata"] = JsonSerializer.Serialize(safeMetadata) });
+                new KernelArguments { ["metadata"] = JsonSerializer.Serialize(safeMetadata) }, cancellationToken: cancellationToken);
 
             var json = ExtractJson(result.ToString());
             var plan = JsonSerializer.Deserialize<ChartRecommendationDto>(json,
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
             return ValidatePlan(plan, safeMetadata);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogInformation("Recomendação de gráfico cancelada para a aba '{Sheet}'.", metadata.SheetName);
+            throw;
         }
         catch (Exception ex)
         {

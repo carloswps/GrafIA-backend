@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using SmartIa.Application.Dtos;
 using SmartIa.Application.UseCases;
 using SmartIa.Api.Dtos;
+using SmartIa.Api.Validation;
 
 namespace SmartIa.Api.Controllers;
 
@@ -18,13 +19,16 @@ public class ChartController : ControllerBase
 
     [HttpPost("recommend")]
     [Consumes("multipart/form-data")]
+    [ProducesResponseType<ChartRecommendationResponseDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status415UnsupportedMediaType)]
     public async Task<ActionResult<ChartRecommendationResponseDto>> Recommend([FromForm] ChartRecommendationRequest request)
     {
-        if (request.File == null || request.File.Length == 0)
-            return BadRequest("Arquivo obrigatorio");
+
+        FileUploadValidator.EnsureValid(request.File);
 
         using var stream = request.File.OpenReadStream();
-        var result = await _recommendChart.ExecuteAsync(stream, request.File.FileName);
+        var result = await _recommendChart.ExecuteAsync(stream, request.File.FileName, HttpContext.RequestAborted);
 
         return Ok(new ChartRecommendationResponseDto(result));
     }

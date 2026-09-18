@@ -15,7 +15,7 @@ public class GenerateReportUseCase
         _aiInsightService = aiInsightService;
     }
 
-    public async Task<ReportResponseDto> ExecuteAsync(Stream fileStream, string fileName, ParametersFilterDto filters)
+    public async Task<ReportResponseDto> ExecuteAsync(Stream fileStream, string fileName, ParametersFilterDto filters, CancellationToken cancellationToken = default)
     {
         var extension = GetExtension(fileName);
         var blocks = new List<BlockReportDto>();
@@ -25,7 +25,7 @@ public class GenerateReportUseCase
             : new List<ProcessResultDto> { _dataProcessor.ProcessDataCsv(fileStream, filters) };
 
         foreach (var result in results)
-            blocks.Add(await BuildBlockAsync(result, blocks.Count));
+            blocks.Add(await BuildBlockAsync(result, blocks.Count, cancellationToken));
 
         var inferredStart = results.Select(r => r.PeriodStart).Where(d => d.HasValue).Min();
         var inferredEnd = results.Select(r => r.PeriodEnd).Where(d => d.HasValue).Max();
@@ -41,13 +41,13 @@ public class GenerateReportUseCase
         return new ReportResponseDto(blocks, context);
     }
 
-    private async Task<BlockReportDto> BuildBlockAsync(ProcessResultDto result, int index)
+    private async Task<BlockReportDto> BuildBlockAsync(ProcessResultDto result, int index, CancellationToken cancellationToken)
     {
         var labels = result.Labels;
         var values = result.Values;
         var summary = result.Summary;
 
-        var analysis = await _aiInsightService.GenerateInsightAsync(labels, values, summary);
+        var analysis = await _aiInsightService.GenerateInsightAsync(labels, values, summary, cancellationToken);
         var metricLabel = string.IsNullOrEmpty(summary.ColumnY) ? "Total" : summary.ColumnY;
 
         var leaderIdx = values.Count > 0 ? values.IndexOf(values.Max()) : -1;
