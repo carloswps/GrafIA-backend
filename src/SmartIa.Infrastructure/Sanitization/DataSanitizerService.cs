@@ -6,50 +6,43 @@ using SmartIa.Application.Interfaces;
 
 namespace SmartIa.Infrastructure.Sanitization;
 
+public enum SensitivityLevel
+{
+    Public,
+    Protected,
+    Confidential
+}
+
 public partial class DataSanitizerService : IDataSanitizerService
 {
+    private static readonly string[] StrictPiiTerms = [
+        "cpf", "cnpj", "rg", "passport", "passaporte", "cnh",
+        "email", "mail", "telefone", "celular", "phone", "whatsapp",
+        "senha", "password", "token", "hash", "secret",
+        "cartao", "card", "cvv", "banco", "agencia"
+    ];
 
-    // whitelist: only allow these columns
-    private static readonly HashSet<string> AllowedColumns = new(
-    new[] {
-        "Empresa", "Filial", "Nome Filial", "Cod Categoria", "Categoria",
-        "Cod Produto", "Produto", "Regiao Cod", "Regiao", "UF", "Estado",
-        "Cidade", "Bairro", "Natureza Operacao", "Desc Natureza", "Classificacao",
-        "Canal", "Sistema", "Evento", "Descricao Evento", "Evento2",
-        "Condicao Pagto", "Forma Pagto", "Especialidade", "Especialidade Desc",
-        "Grupo", "Nome Grupo", "TES", "CFOP",
-
-        "Qtd", "Unit", "Total", "Val IPI", "Val ICMS", "Vl IPI Unit", "VlICMSUnit",
-        "UnitBruto", "Frete", "TotalBruto", "Qtd Dev", "Dev Unit", "Dev Total",
-        "Dev Unit 2", "Dev Total 2", "Qtd Liq", "Venda Unit Liq", "Venda Total Liq",
-        "Qtd Devolvida", "Valor Devolvido", "Mes", "Ano","Cliente", "Grupo", "Produto", "Vendedor", "VALOR_META", "QTD_META"
-    }.Select(HeaderNormalizer.Normalize), StringComparer.Ordinal);
-
-
-    private static readonly string[] DatePrefixes = new[] { "Data", "Dt", "Emissao", "Validade" }.Select(HeaderNormalizer.Normalize).ToArray();
-
-    private static readonly string[] PiiTerms =
-        new[]
-        {
-        "nascimento", "nasc", "admissao", "demissao", "cpf", "cnpj", "rg",
-        "carteira", "passaporte", "titulo", "eleitor", "pis", "pasep", "matricula",
-        "funcionario", "cliente", "fornecedor", "contato", "pessoal", "pessoa",
-        "email", "telefone", "celular", "fone", "whatsapp",
-        "endereco", "logradouro", "cep", "rua", "complemento",
-        "mae", "pai", "responsavel", "banco", "agencia", "conta"
-    }.Select(HeaderNormalizer.Normalize).ToArray();
-
-
+    private static readonly string[] ContextualPiiTerms = ["conta"];
     private static readonly Regex CpfCnpjRegex = CnpjCpfRegex();
-
     private static readonly Regex EmailRegex = RegexEmail();
+
+    private readonly IDictionary<string, SensitivityLevel> _columnPolicyOverride;
+
+    public DataSanitizerService(IDictionary<string, SensitivityLevel>? columnPolicyOverride = null)
+    {
+        _columnPolicyOverride = columnPolicyOverride ?? new Dictionary<string, SensitivityLevel>(StringComparer.OrdinalIgnoreCase);
+    }
 
     public Dictionary<string, List<string>> SanitizeMetaData(Dictionary<string, List<string>> rawMetaData)
     {
         var sanitizedMetadata = new Dictionary<string, List<string>>();
         foreach (var (columnName, sampleValues) in rawMetaData)
         {
-            if (!IsAllowedColumn(columnName))
+            if (string.IsNullOrWhiteSpace(columnName) || sampleValues is null) continue;
+
+            var sensitivity = EvaluateColumnSensitivity(columnName, sampleValues);
+
+            if (sensitivity == SensitivityLevel.Confidential)
                 continue;
 
             var cleanSamples = sampleValues.Select(AnonymizeSampleValue).Where(val => !string.IsNullOrWhiteSpace(val))
@@ -61,20 +54,49 @@ public partial class DataSanitizerService : IDataSanitizerService
         return sanitizedMetadata;
     }
 
-    private bool IsAllowedColumn(string columnName)
+    private SensitivityLevel EvaluateColumnSensitivity(string columnName, List<string> sampleValue)
     {
-        if (string.IsNullOrWhiteSpace(columnName)) return false;
-        var normalized = HeaderNormalizer.Normalize(columnName);
-        if (normalized.Length == 0) return false;
-        if (AllowedColumns.Contains(normalized)) return true;
-        return HasDatePrefix(normalized) && !LooksLikePii(normalized);
+        if (string.IsNullOrWhiteSpace(columnName))
+            return SensitivityLevel.Confidential;
+
+        var normalizedName = HeaderNormalizer.Normalize(columnName);
+
+        if (_columnPolicyOverride.TryGetValue(normalizedName, out var policy))
+            return policy;
+
+        if (ContainsPiiTerm(columnName))
+            return SensitivityLevel.Confidential;
+
+        if (HasHighPiiContentDensity(sampleValue))
+            return SensitivityLevel.Protected;
+
+        return SensitivityLevel.Public;
     }
 
-    private static bool HasDatePrefix(string name) =>
-            DatePrefixes.Any(p => name.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+    private static IEnumerable<string> Tokenize(string columnName) => Regex.Split(columnName, @"[^\p{L}\p{Nd}]+").Select(HeaderNormalizer.Normalize)
+         .Where(t => t.Length > 0);
 
-    private static bool LooksLikePii(string name) =>
-        PiiTerms.Any(t => name.Contains(t, StringComparison.OrdinalIgnoreCase));
+    private static bool ContainsPiiTerm(string columnName)
+    {
+        var tokens = Tokenize(columnName).ToList();
+
+        if (StrictPiiTerms.Concat(ContextualPiiTerms).Any(term => tokens.Contains(term, StringComparer.Ordinal))) return true;
+
+        var joined = string.Concat(tokens);
+        return StrictPiiTerms.Any(term => term.Length >= 5 && joined.Contains(term, StringComparison.Ordinal));
+    }
+
+    private static bool HasHighPiiContentDensity(List<string> sampleValues)
+    {
+        var sampleToInspect = sampleValues.Where(s => !string.IsNullOrWhiteSpace(s)).Take(50).ToList();
+        if (sampleValues.Count == 0) return false;
+
+        if (sampleToInspect.Count == 0) return false;
+
+        var piiMatches = sampleToInspect.Count(s => CpfCnpjRegex.IsMatch(s) || EmailRegex.IsMatch(s));
+
+        return (double)piiMatches / sampleToInspect.Count > 0.3;
+    }
 
     private string AnonymizeSampleValue(string value)
     {

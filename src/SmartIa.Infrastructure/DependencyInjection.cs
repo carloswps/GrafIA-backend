@@ -15,7 +15,7 @@ public static class DependencyInjection
 
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddSingleton<IDataSanitizerService, DataSanitizerService>();
+        services.AddSingleton<IDataSanitizerService>(_ => new DataSanitizerService());
         services.AddScoped<IDataProcessService, DataProcessService>();
 
         var llmConfig = configuration.GetSection("LLM");
