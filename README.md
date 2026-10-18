@@ -1,5 +1,7 @@
 # Smart IA
 
+> 🎓 **Projeto de estudos.** Este é um projeto pessoal criado para aprendizado e experimentação (arquitetura, integração com LLM, processamento de planilhas). Não é um produto pronto para produção e pode mudar a qualquer momento.
+
 Uma API que lê planilhas e devolve **gráficos prontos para exibir, com insights escritos em português**.
 
 Você envia um arquivo `.csv`, `.xlsx` ou `.xls` e a API faz o trabalho pesado: entende os dados, monta os resumos (total, média, quem lidera), sugere o melhor tipo de gráfico e escreve uma análise curta em linguagem natural. Se a análise por IA não estiver disponível, ela ainda responde com um texto padrão baseado nos números, então nunca fica sem retorno.
@@ -92,112 +94,19 @@ dotnet build
 dotnet run --project src/SmartIa.Api --launch-profile http
 ```
 
-Depois de subir, a documentação interativa fica em:
-
-| O quê        | Endereço                      |
-| ------------ | ----------------------------- |
-| API (HTTP)   | http://localhost:5259         |
-| API (HTTPS)  | https://localhost:7145        |
-| Documentação | http://localhost:5259/swagger |
-
-> No VS Code ou no Zed, também dá para rodar tudo pelos _tasks_ prontos: `build`, `run`, `watch` (com recarregamento automático) e `test`.
-
----
-
-## Os dois endpoints
-
-### 1. Gerar relatório — `POST /api/report/process`
-
-Recebe o arquivo e devolve os blocos de gráfico já montados.
-
-- `File` (obrigatório): o arquivo `.csv`, `.xlsx` ou `.xls`
-- `ParametersJson` (opcional): filtros de período e colunas
-
-Exemplo de filtros:
-
-```json
-{
-  "dateIni": "2024-01-01T00:00:00",
-  "dateEnd": "2024-12-31T00:00:00",
-  "columnX": "Regiao",
-  "columnY": "Total"
-}
-```
-
-Exemplo de resposta (resumida):
-
-```json
-{
-  "blocks": [
-    {
-      "id": "block-0",
-      "title": "Vendas",
-      "typeGraphic": "bar",
-      "dimension": "Regiao",
-      "metric": "Total",
-      "unit": "moeda",
-      "labels": ["Sudeste", "Sul", "Nordeste"],
-      "datasets": [{ "label": "Total", "data": [1500.5, 980.0, 720.25] }],
-      "kpis": { "total": 3200.75, "media": 1066.92, "shareTop1": 46.9 },
-      "insightsIa": [
-        {
-          "type": "leader",
-          "severity": "info",
-          "text": "Sudeste lidera com 1.500,50."
-        }
-      ]
-    }
-  ],
-  "context": { "rowsProcessed": 120, "generatedAt": "2024-06-01T12:00:00Z" }
-}
-```
-
-Testando pelo terminal:
-
-```bash
-curl -X POST http://localhost:5259/api/report/process \
-  -F "File=@./vendas.csv" \
-  -F 'ParametersJson={"columnX":"Regiao","columnY":"Total"}'
-```
-
-### 2. Recomendar gráfico — `POST /api/chart/recommend`
-
-Analisa o arquivo e diz qual visualização combina mais com os dados.
-
-- `File` (obrigatório): o arquivo `.csv`, `.xlsx` ou `.xls`
-
-```json
-{
-  "recommendations": [
-    {
-      "chartType": "bar",
-      "columnX": "Regiao",
-      "columnY": "Total",
-      "title": "Total por Regiao",
-      "reason": "Barras facilitam a comparação entre categorias."
-    }
-  ]
-}
-```
-
-```bash
-curl -X POST http://localhost:5259/api/chart/recommend \
-  -F "File=@./vendas.xlsx"
-```
-
 ---
 
 ## Tecnologias
 
-| Camada       | O que é usada                       |
-| ------------ | ----------------------------------- |
-| Base         | .NET 10 / ASP.NET Core              |
-| IA           | Semantic Kernel (conectores OpenAI) |
-| Planilhas    | CsvHelper, ExcelDataReader          |
-| Documentação | Swagger                             |
-| Testes       | xUnit + Moq                         |
+| Camada       | O que é usada              |
+| ------------ | -------------------------- |
+| Base         | .NET 10 / ASP.NET Core     |
+| IA           | Semantic Kernel            |
+| Planilhas    | CsvHelper, ExcelDataReader |
+| Documentação | Swagger                    |
+| Testes       | xUnit + Moq                |
 
-O código está organizado em camadas para facilitar a manutenção:
+O código está organizado em camadas:
 
 ```
 src/
@@ -206,12 +115,4 @@ src/
 └── SmartIa.Infrastructure  # leitura de arquivos, IA e proteção de dados
 tests/
 └── SmartIa.Tests          # testes automatizados
-```
-
----
-
-## Testes
-
-```bash
-dotnet test
 ```
