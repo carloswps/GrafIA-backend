@@ -1,4 +1,4 @@
-# Smart IA
+# Graf IA
 
 > 🎓 **Projeto de estudos.** Este é um projeto pessoal criado para aprendizado e experimentação (arquitetura, integração com LLM, processamento de planilhas). Não é um produto pronto para produção e pode mudar a qualquer momento.
 
