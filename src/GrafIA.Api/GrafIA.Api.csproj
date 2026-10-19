@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SmartIa.Application\SmartIa.Application.csproj" />
-    <ProjectReference Include="..\SmartIa.Infrastructure\SmartIa.Infrastructure.csproj" />
+  <ProjectReference Include="..\GrafIA.Application\GrafIA.Application.csproj" />
+  <ProjectReference Include="..\GrafIA.Infrastructure\GrafIA.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

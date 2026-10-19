@@ -29,7 +29,6 @@ public class ChartController : ControllerBase
 
         using var stream = request.File.OpenReadStream();
         var result = await _recommendChart.ExecuteAsync(stream, request.File.FileName, HttpContext.RequestAborted);
-
         return Ok(new ChartRecommendationResponseDto(result));
     }
 }

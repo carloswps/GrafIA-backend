@@ -8,9 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\SmartIa.Application\SmartIa.Application.csproj" />
-    <ProjectReference Include="..\..\src\SmartIa.Infrastructure\SmartIa.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\src\SmartIa.Api\SmartIa.Api.csproj" />
+  <ProjectReference Include="..\..\src\GrafIA.Application\GrafIA.Application.csproj" />
+  <ProjectReference Include="..\..\src\GrafIA.Infrastructure\GrafIA.Infrastructure.csproj" />
+  <ProjectReference Include="..\..\src\GrafIA.Api\GrafIA.Api.csproj" />
   </ItemGroup>
 
   <ItemGroup>
